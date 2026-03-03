@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — VaultCam{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <h1>My Inventory</h1>
+        <a href="{{ url_for('add') }}" class="btn btn-primary">Add Item</a>
+    </div>
+
+    <div class="category-tabs">
+        <a href="{{ url_for('dashboard') }}"
+           class="tab {% if not active_category %}tab-active{% endif %}">All</a>
+        {% for cat in categories %}
+        <a href="{{ url_for('dashboard', category=cat.slug) }}"
+           class="tab {% if active_category == cat.slug %}tab-active{% endif %}">
+            {{ cat.icon }} {{ cat.display_name }}
+        </a>
+        {% endfor %}
+    </div>
+
+    {% if items %}
+    <div class="item-grid">
+        {% for item in items %}
+        <a href="{{ url_for('item_detail', item_id=item.id) }}" class="item-card">
+            {% if item.image_data %}
+            <div class="item-card-image">
+                <img src="{{ item.image_data }}" alt="{{ item.name }}">
+            </div>
+            {% else %}
+            <div class="item-card-image item-card-placeholder">
+                <span>{{ item.category.icon }}</span>
+            </div>
+            {% endif %}
+            <div class="item-card-body">
+                <h3 class="item-card-name">{{ item.name or 'Unnamed' }}</h3>
+                <p class="item-card-brand">{{ item.brand or '' }}</p>
+                {% if item.category.slug == 'nail_polish' and item.properties and item.properties.color_hex %}
+                <span class="color-swatch" style="background:{{ item.properties.color_hex }}"></span>
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>No items yet.</p>
+        <a href="{{ url_for('add') }}" class="btn btn-primary">Add Your First Item</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

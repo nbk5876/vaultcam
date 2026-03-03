@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}VaultCam — Your AI Inventory{% endblock %}
+
+{% block content %}
+<div class="landing">
+    <div class="landing-hero">
+        <h1>VaultCam</h1>
+        <p class="landing-tagline">Photograph it. Catalog it. Find it.</p>
+    </div>
+
+    {% if show_signup %}
+    <div class="auth-card">
+        <h2>Create Account</h2>
+        <form method="POST" action="{{ url_for('signup') }}">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" name="name" required autocomplete="name">
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
+                <span class="form-hint">At least 8 characters</span>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Sign Up</button>
+        </form>
+        <p class="auth-switch">Already have an account? <a href="{{ url_for('login') }}">Log in</a></p>
+    </div>
+
+    {% elif show_login %}
+    <div class="auth-card">
+        <h2>Log In</h2>
+        <form method="POST" action="{{ url_for('login') }}">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Log In</button>
+        </form>
+        <p class="auth-switch">New here? <a href="{{ url_for('signup') }}">Create an account</a></p>
+    </div>
+
+    {% else %}
+    <div class="landing-actions">
+        <a href="{{ url_for('login') }}" class="btn btn-primary btn-full">Log In</a>
+        <a href="{{ url_for('signup') }}" class="btn btn-secondary btn-full">Create Account</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

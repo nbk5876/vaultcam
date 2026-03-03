@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}Add Item — VaultCam{% endblock %}
+
+{% block content %}
+<div class="add-page">
+    <h1>Add Item</h1>
+
+    <div id="step-category" class="add-step">
+        <p class="section-label">Select Category</p>
+        <div class="category-select">
+            {% for cat in categories %}
+            <button class="category-btn" data-slug="{{ cat.slug }}">
+                <span class="category-btn-icon">{{ cat.icon }}</span>
+                <span class="category-btn-label">{{ cat.display_name }}</span>
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="step-capture" class="add-step" style="display:none;">
+        <p class="section-label">Photograph Your Item</p>
+        <div class="capture-area">
+            <label for="camera-input" class="capture-btn">
+                <svg width="48" height="48" fill="none" stroke="#007AFF" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                </svg>
+                <span>Tap to photograph</span>
+            </label>
+            <input type="file" accept="image/*" capture="environment" id="camera-input" class="sr-only">
+        </div>
+        <div id="preview-area" style="display:none;">
+            <img id="preview-img" alt="Preview">
+            <button id="analyze-btn" class="btn btn-primary btn-full">Analyze with AI</button>
+        </div>
+    </div>
+
+    <div id="step-loading" class="add-step" style="display:none;">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Analyzing your item...</p>
+        </div>
+    </div>
+
+    <div id="step-review" class="add-step" style="display:none;">
+        <form id="review-form" method="POST" action="{{ url_for('save_item') }}">
+            <input type="hidden" name="category_id" id="review-category-id">
+            <input type="hidden" name="image_data" id="review-image-data">
+            <input type="hidden" name="ai_confidence" id="review-confidence">
+
+            <div id="review-photo" class="review-photo"></div>
+
+            <div id="review-fields"></div>
+
+            <div class="form-group">
+                <label for="review-status">Status</label>
+                <select name="status" id="review-status" class="form-select">
+                    <option value="owned">Owned</option>
+                    <option value="wishlist">Wishlist</option>
+                    <option value="used_up">Used Up</option>
+                    <option value="gifted">Gifted</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="review-notes">Notes</label>
+                <textarea name="notes" id="review-notes" rows="3" class="form-textarea"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full">Save Item</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    let selectedSlug = null;
+
+    // Category selection
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectedSlug = btn.dataset.slug;
+            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('step-capture').style.display = '';
+        });
+    });
+
+    // Camera input
+    const cameraInput = document.getElementById('camera-input');
+    const previewArea = document.getElementById('preview-area');
+    const previewImg = document.getElementById('preview-img');
+
+    cameraInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            previewImg.src = ev.target.result;
+            previewArea.style.display = '';
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Analyze
+    document.getElementById('analyze-btn').addEventListener('click', () => {
+        const file = cameraInput.files[0];
+        if (!file || !selectedSlug) return;
+
+        document.getElementById('step-capture').style.display = 'none';
+        document.getElementById('step-loading').style.display = '';
+
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('category_slug', selectedSlug);
+
+        fetch('{{ url_for("analyze") }}', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('step-loading').style.display = 'none';
+                if (data.error) {
+                    alert('Analysis failed: ' + data.error);
+                    document.getElementById('step-capture').style.display = '';
+                    return;
+                }
+                showReviewForm(data);
+            })
+            .catch(err => {
+                document.getElementById('step-loading').style.display = 'none';
+                document.getElementById('step-capture').style.display = '';
+                alert('Error: ' + err.message);
+            });
+    });
+
+    function showReviewForm(data) {
+        document.getElementById('step-review').style.display = '';
+        document.getElementById('review-category-id').value = data.category_id;
+        document.getElementById('review-image-data').value = data.image_data;
+        document.getElementById('review-confidence').value = data.extracted.confidence || '';
+
+        // Photo preview
+        document.getElementById('review-photo').innerHTML =
+            '<img src="' + data.image_data + '" alt="Item photo">';
+
+        const fields = document.getElementById('review-fields');
+        fields.innerHTML = '';
+        const ext = data.extracted;
+
+        if (data.category_slug === 'nail_polish') {
+            fields.innerHTML = buildField('name', 'Color Name', ext.color_name) +
+                buildField('brand', 'Brand', ext.brand) +
+                buildSelect('finish', 'Finish', ['creme','glitter','shimmer','matte','metallic','gel'], ext.finish) +
+                buildField('color_hex', 'Color Hex', ext.color_hex, 'color');
+        } else if (data.category_slug === 'spice') {
+            fields.innerHTML = buildField('name', 'Spice Name', ext.name) +
+                buildField('brand', 'Brand', ext.brand) +
+                buildField('origin', 'Origin', ext.origin) +
+                buildSelect('heat_level', 'Heat Level', ['none','mild','medium','hot','extra_hot'], ext.heat_level) +
+                buildSelect('format', 'Format', ['whole','ground','flake','blend'], ext.format) +
+                buildField('expiry_date', 'Expiry Date', ext.expiry_date);
+        }
+    }
+
+    function buildField(name, label, value, type) {
+        type = type || 'text';
+        const val = value || '';
+        if (type === 'color' && val) {
+            return '<div class="form-group"><label>' + label + '</label>' +
+                '<div class="color-input-wrap">' +
+                '<input type="color" name="' + name + '" value="' + val + '" class="form-color">' +
+                '<input type="text" value="' + val + '" class="form-input form-input-hex" ' +
+                'oninput="this.previousElementSibling.value=this.value" readonly>' +
+                '</div></div>';
+        }
+        return '<div class="form-group"><label>' + label + '</label>' +
+            '<input type="text" name="' + name + '" value="' + val + '" class="form-input"></div>';
+    }
+
+    function buildSelect(name, label, options, selected) {
+        let html = '<div class="form-group"><label>' + label + '</label><select name="' + name + '" class="form-select">';
+        html += '<option value="">--</option>';
+        options.forEach(opt => {
+            const sel = (opt === selected) ? ' selected' : '';
+            html += '<option value="' + opt + '"' + sel + '>' + opt.replace(/_/g, ' ') + '</option>';
+        });
+        html += '</select></div>';
+        return html;
+    }
+})();
+</script>
+{% endblock %}

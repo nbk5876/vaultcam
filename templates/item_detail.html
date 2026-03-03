@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}{{ item.name or 'Item' }} — VaultCam{% endblock %}
+
+{% block content %}
+<div class="detail-page">
+    <a href="{{ url_for('dashboard') }}" class="back-link">&larr; Back</a>
+
+    {% if item.image_data %}
+    <div class="detail-photo">
+        <img src="{{ item.image_data }}" alt="{{ item.name }}">
+    </div>
+    {% endif %}
+
+    {% if editing %}
+    <form method="POST" action="{{ url_for('edit_item', item_id=item.id) }}">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" value="{{ item.name or '' }}" class="form-input">
+        </div>
+        <div class="form-group">
+            <label>Brand</label>
+            <input type="text" name="brand" value="{{ item.brand or '' }}" class="form-input">
+        </div>
+
+        {% if item.category.slug == 'nail_polish' %}
+        <div class="form-group">
+            <label>Finish</label>
+            <select name="finish" class="form-select">
+                <option value="">--</option>
+                {% for f in ['creme','glitter','shimmer','matte','metallic','gel'] %}
+                <option value="{{ f }}" {% if item.properties and item.properties.finish == f %}selected{% endif %}>{{ f }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Color Hex</label>
+            <input type="color" name="color_hex" value="{{ item.properties.color_hex if item.properties and item.properties.color_hex else '#000000' }}" class="form-color">
+        </div>
+        {% elif item.category.slug == 'spice' %}
+        <div class="form-group">
+            <label>Heat Level</label>
+            <select name="heat_level" class="form-select">
+                <option value="">--</option>
+                {% for h in ['none','mild','medium','hot','extra_hot'] %}
+                <option value="{{ h }}" {% if item.properties and item.properties.heat_level == h %}selected{% endif %}>{{ h|replace('_', ' ') }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Origin</label>
+            <input type="text" name="origin" value="{{ item.properties.origin if item.properties and item.properties.origin else '' }}" class="form-input">
+        </div>
+        <div class="form-group">
+            <label>Format</label>
+            <select name="format" class="form-select">
+                <option value="">--</option>
+                {% for f in ['whole','ground','flake','blend'] %}
+                <option value="{{ f }}" {% if item.properties and item.properties.format == f %}selected{% endif %}>{{ f }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Expiry Date</label>
+            <input type="text" name="expiry_date" value="{{ item.properties.expiry_date if item.properties and item.properties.expiry_date else '' }}" placeholder="MM/YYYY" class="form-input">
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label>Status</label>
+            <select name="status" class="form-select">
+                {% for s in ['owned','wishlist','used_up','gifted'] %}
+                <option value="{{ s }}" {% if item.status == s %}selected{% endif %}>{{ s|replace('_', ' ')|title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Notes</label>
+            <textarea name="notes" rows="3" class="form-textarea">{{ item.notes or '' }}</textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full">Save Changes</button>
+        <a href="{{ url_for('item_detail', item_id=item.id) }}" class="btn btn-secondary btn-full">Cancel</a>
+    </form>
+
+    {% else %}
+    <div class="detail-info">
+        <h1>{{ item.name or 'Unnamed Item' }}</h1>
+        {% if item.brand %}
+        <p class="detail-brand">{{ item.brand }}</p>
+        {% endif %}
+        <span class="detail-category-badge">{{ item.category.icon }} {{ item.category.display_name }}</span>
+
+        {% if item.category.slug == 'nail_polish' and item.properties %}
+        <div class="detail-props">
+            {% if item.properties.finish %}
+            <div class="prop-row"><span class="prop-label">Finish</span><span>{{ item.properties.finish }}</span></div>
+            {% endif %}
+            {% if item.properties.color_hex %}
+            <div class="prop-row">
+                <span class="prop-label">Color</span>
+                <span class="color-swatch-lg" style="background:{{ item.properties.color_hex }}"></span>
+                <span>{{ item.properties.color_hex }}</span>
+            </div>
+            {% endif %}
+        </div>
+        {% elif item.category.slug == 'spice' and item.properties %}
+        <div class="detail-props">
+            {% if item.properties.heat_level %}
+            <div class="prop-row"><span class="prop-label">Heat Level</span><span>{{ item.properties.heat_level|replace('_', ' ')|title }}</span></div>
+            {% endif %}
+            {% if item.properties.origin %}
+            <div class="prop-row"><span class="prop-label">Origin</span><span>{{ item.properties.origin }}</span></div>
+            {% endif %}
+            {% if item.properties.format %}
+            <div class="prop-row"><span class="prop-label">Format</span><span>{{ item.properties.format|title }}</span></div>
+            {% endif %}
+            {% if item.properties.expiry_date %}
+            <div class="prop-row"><span class="prop-label">Expiry</span><span>{{ item.properties.expiry_date }}</span></div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if item.status %}
+        <div class="prop-row"><span class="prop-label">Status</span><span>{{ item.status|replace('_', ' ')|title }}</span></div>
+        {% endif %}
+
+        {% if item.ai_confidence %}
+        <div class="prop-row"><span class="prop-label">AI Confidence</span><span class="confidence-{{ item.ai_confidence }}">{{ item.ai_confidence|title }}</span></div>
+        {% endif %}
+
+        {% if item.notes %}
+        <div class="detail-notes">
+            <span class="prop-label">Notes</span>
+            <p>{{ item.notes }}</p>
+        </div>
+        {% endif %}
+
+        <div class="detail-actions">
+            <a href="{{ url_for('edit_item', item_id=item.id) }}" class="btn btn-secondary btn-full">Edit</a>
+            <form method="POST" action="{{ url_for('delete_item', item_id=item.id) }}" class="delete-form">
+                <button type="submit" class="btn btn-danger btn-full" onclick="return confirm('Delete this item?')">Delete</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

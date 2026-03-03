@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Search — VaultCam{% endblock %}
+
+{% block content %}
+<div class="search-page">
+    <h1>Search</h1>
+    <form method="GET" action="{{ url_for('search') }}" class="search-form">
+        <div class="search-input-wrap">
+            <input type="text" name="q" value="{{ query or '' }}" placeholder="Search by name or brand..." class="form-input search-input" autofocus>
+            <button type="submit" class="btn btn-primary">Search</button>
+        </div>
+    </form>
+
+    {% if query %}
+    <p class="search-count">{{ items|length }} result{{ 's' if items|length != 1 }} for "{{ query }}"</p>
+    {% endif %}
+
+    {% if items %}
+    <div class="item-grid">
+        {% for item in items %}
+        <a href="{{ url_for('item_detail', item_id=item.id) }}" class="item-card">
+            {% if item.image_data %}
+            <div class="item-card-image">
+                <img src="{{ item.image_data }}" alt="{{ item.name }}">
+            </div>
+            {% else %}
+            <div class="item-card-image item-card-placeholder">
+                <span>{{ item.category.icon }}</span>
+            </div>
+            {% endif %}
+            <div class="item-card-body">
+                <h3 class="item-card-name">{{ item.name or 'Unnamed' }}</h3>
+                <p class="item-card-brand">{{ item.brand or '' }}</p>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% elif query %}
+    <div class="empty-state">
+        <p>No items match your search.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
