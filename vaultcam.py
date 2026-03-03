@@ -105,6 +105,25 @@ Return ONLY a JSON object, no other text:
     db.session.commit()
 
 
+# TEMPORARY: Guest account for dev/testing — remove before production launch
+GUEST_EMAIL = 'guest@vaultcam.app'
+GUEST_NAME = 'Guest'
+
+
+def ensure_guest_user():
+    """Create the shared guest account if it doesn't exist."""
+    guest = User.query.filter_by(email=GUEST_EMAIL).first()
+    if not guest:
+        guest = User(
+            email=GUEST_EMAIL,
+            name=GUEST_NAME,
+            password_hash='no-login'  # not a real hash — guest bypasses password auth
+        )
+        db.session.add(guest)
+        db.session.commit()
+    return guest
+
+
 # --------------------------------------------------
 # Auth Helper
 # --------------------------------------------------
@@ -126,6 +145,19 @@ def landing():
     if session.get('user_id'):
         return redirect(url_for('dashboard'))
     return render_template('landing.html')
+
+
+# TEMPORARY: Guest access route for dev/testing
+@app.route('/guest')
+def guest_login():
+    guest = User.query.filter_by(email=GUEST_EMAIL).first()
+    if not guest:
+        guest = ensure_guest_user()
+    session['user_id'] = guest.id
+    session['user_name'] = guest.name
+    session['user_email'] = guest.email
+    session['is_guest'] = True
+    return redirect(url_for('dashboard'))
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -386,6 +418,7 @@ def search():
 with app.app_context():
     db.create_all()
     seed_categories()
+    ensure_guest_user()  # TEMPORARY: seed guest account for dev/testing
 
 
 if __name__ == '__main__':

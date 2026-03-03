@@ -53,8 +53,20 @@ img { max-width: 100%; height: auto; display: block; }
     color: var(--text-primary);
 }
 .nav-actions { display: flex; align-items: center; gap: 16px; }
+.nav-user { font-size: 12px; color: var(--text-secondary); }
 .nav-icon { color: var(--text-secondary); }
 .nav-link { color: var(--text-secondary); font-size: 15px; }
+
+/* ── Guest Banner ── */
+.guest-banner {
+    padding: 10px 16px;
+    background: #FFF8E1;
+    color: #8D6E00;
+    font-size: 13px;
+    text-align: center;
+    border-bottom: 1px solid #F0E0A0;
+}
+.guest-banner a { color: var(--primary); font-weight: 600; }
 
 /* ── Container ── */
 .container {
@@ -131,6 +143,7 @@ img { max-width: 100%; height: auto; display: block; }
 .landing-hero h1 { font-size: 36px; font-weight: 800; margin-bottom: 8px; }
 .landing-tagline { font-size: 18px; color: var(--text-secondary); margin-bottom: 40px; }
 .landing-actions { display: flex; flex-direction: column; gap: 12px; max-width: 320px; margin: 0 auto; }
+.btn-guest { background: transparent; color: var(--text-secondary); font-size: 15px; font-weight: 500; padding: 10px 28px; }
 .auth-card {
     background: var(--card);
     border-radius: var(--radius-card);
