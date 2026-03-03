@@ -104,16 +104,37 @@
         reader.readAsDataURL(file);
     });
 
+    // Resize image client-side before upload
+    function resizeImage(file, maxWidth, quality) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height;
+                if (w > maxWidth) {
+                    h = Math.round(h * maxWidth / w);
+                    w = maxWidth;
+                }
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                canvas.toBlob(resolve, 'image/jpeg', quality);
+            };
+            img.src = URL.createObjectURL(file);
+        });
+    }
+
     // Analyze
-    document.getElementById('analyze-btn').addEventListener('click', () => {
+    document.getElementById('analyze-btn').addEventListener('click', async () => {
         const file = cameraInput.files[0];
         if (!file || !selectedSlug) return;
 
         document.getElementById('step-capture').style.display = 'none';
         document.getElementById('step-loading').style.display = '';
 
+        const resized = await resizeImage(file, 1024, 0.7);
         const formData = new FormData();
-        formData.append('image', file);
+        formData.append('image', resized, 'photo.jpg');
         formData.append('category_slug', selectedSlug);
 
         fetch('{{ url_for("analyze") }}', { method: 'POST', body: formData })
