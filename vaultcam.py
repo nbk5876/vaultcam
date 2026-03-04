@@ -268,7 +268,14 @@ def dashboard():
         if cat:
             query = query.filter_by(category_id=cat.id)
 
-    items = query.order_by(Item.created_at.desc()).all()
+    items = query.order_by(
+        db.cast(
+            db.func.nullif(db.cast(Item.properties['estimated_value'], db.Text), 'null'),
+            db.Numeric
+        ).desc().nullslast(),
+        Item.brand.asc(),
+        Item.name.asc()
+    ).all()
     return render_template('dashboard.html', items=items, categories=categories,
                            active_category=category_slug)
 

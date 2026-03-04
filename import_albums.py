@@ -38,12 +38,15 @@ from sqlalchemy import create_engine, text
 # Configuration — edit these two lines before running
 # ---------------------------------------------------------------------------
 IMAGES_FOLDER = r"C:\Users\gb105\Projects\vaultcam-album-covers"
-OWNER_EMAIL   = "test@example.com"   # the VaultCam user account to import under
+#OWNER_EMAIL   = "test@example.com"   # the TEST VaultCam user account to import under
+OWNER_EMAIL   = "guest@vaultcam.app"   # the PROD VaultCam user account to import under
 # ---------------------------------------------------------------------------
 
 load_dotenv()
 
-DATABASE_URL  = os.environ.get("DATABASE_URL")
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 if not DATABASE_URL:
