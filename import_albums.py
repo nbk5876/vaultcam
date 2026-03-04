@@ -155,7 +155,7 @@ def insert_item(conn, user_id: int, category_id: int,
             (user_id, category_id, name, brand, properties, status,
              image_data, ai_confidence, notes, created_at)
         VALUES
-            (:user_id, :category_id, :name, :brand, :properties::jsonb, :status,
+            (:user_id, :category_id, :name, :brand, CAST(:properties AS jsonb), :status,
              :image_data, :confidence, :notes, :created_at)
     """), {
         "user_id":     user_id,
