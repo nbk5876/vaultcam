@@ -169,6 +169,17 @@ def login_required(f):
     return decorated
 
 
+def is_guest():
+    """Return True if the current session belongs to the guest account."""
+    return session.get('is_guest', False)
+
+
+@app.context_processor
+def inject_guest_flag():
+    """Make guest_mode available in all templates."""
+    return {'guest_mode': is_guest()}
+
+
 # --------------------------------------------------
 # Routes
 # --------------------------------------------------
@@ -283,6 +294,9 @@ def dashboard():
 @app.route('/add')
 @login_required
 def add():
+    if is_guest():
+        flash('Guest accounts are read-only. Sign up to add items!', 'error')
+        return redirect(url_for('dashboard'))
     categories = Category.query.filter_by(is_active=True).all()
     return render_template('add.html', categories=categories)
 
@@ -290,6 +304,8 @@ def add():
 @app.route('/analyze', methods=['POST'])
 @login_required
 def analyze():
+    if is_guest():
+        return jsonify({'error': 'Guest accounts are read-only'}), 403
     category_slug = request.form.get('category_slug')
     image_file = request.files.get('image')
 
@@ -331,6 +347,8 @@ def analyze():
 @app.route('/items', methods=['POST'])
 @login_required
 def save_item():
+    if is_guest():
+        return jsonify({'error': 'Guest accounts are read-only'}), 403
     category_id = request.form.get('category_id', type=int)
     category = Category.query.get_or_404(category_id)
 
@@ -390,6 +408,9 @@ def item_detail(item_id):
 @app.route('/items/<int:item_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_item(item_id):
+    if is_guest():
+        flash('Guest accounts are read-only. Sign up to edit items!', 'error')
+        return redirect(url_for('item_detail', item_id=item_id))
     item = Item.query.get_or_404(item_id)
     if item.user_id != session['user_id']:
         return redirect(url_for('dashboard'))
@@ -431,6 +452,8 @@ def edit_item(item_id):
 @app.route('/items/<int:item_id>/delete', methods=['POST'])
 @login_required
 def delete_item(item_id):
+    if is_guest():
+        return jsonify({'error': 'Guest accounts are read-only'}), 403
     item = Item.query.get_or_404(item_id)
     if item.user_id != session['user_id']:
         return redirect(url_for('dashboard'))

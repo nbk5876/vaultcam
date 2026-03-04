@@ -60,11 +60,11 @@ img { max-width: 100%; height: auto; display: block; }
 /* ── Guest Banner ── */
 .guest-banner {
     padding: 10px 16px;
-    background: #FFF8E1;
-    color: #8D6E00;
+    background: #FFF3E0;
+    color: #E65100;
     font-size: 13px;
     text-align: center;
-    border-bottom: 1px solid #F0E0A0;
+    border-bottom: 1px solid #FFB74D;
 }
 .guest-banner a { color: var(--primary); font-weight: 600; }
 

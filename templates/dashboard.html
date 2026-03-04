@@ -5,7 +5,9 @@
 <div class="dashboard">
     <div class="dashboard-header">
         <h1>My Inventory</h1>
+        {% if not guest_mode %}
         <a href="{{ url_for('add') }}" class="btn btn-primary">Add Item</a>
+        {% endif %}
     </div>
 
     <div class="category-tabs">
@@ -48,7 +50,9 @@
     {% else %}
     <div class="empty-state">
         <p>No items yet.</p>
+        {% if not guest_mode %}
         <a href="{{ url_for('add') }}" class="btn btn-primary">Add Your First Item</a>
+        {% endif %}
     </div>
     {% endif %}
 </div>

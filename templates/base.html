@@ -14,9 +14,9 @@
 </head>
 <body>
     {% if session.get('user_id') %}
-    {% if session.get('is_guest') %}
+    {% if guest_mode %}
     <div class="guest-banner">
-        You're browsing as a guest. <a href="{{ url_for('signup') }}">Create an account</a> to save your own inventory.
+        You're browsing as a guest (read-only). <a href="{{ url_for('signup') }}">Sign up</a> to create your own inventory.
     </div>
     {% endif %}
     <nav class="navbar">
