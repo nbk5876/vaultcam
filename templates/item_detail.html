@@ -36,6 +36,56 @@
             <label>Color Hex</label>
             <input type="color" name="color_hex" value="{{ item.properties.color_hex if item.properties and item.properties.color_hex else '#000000' }}" class="form-color">
         </div>
+        {% elif item.category.slug == 'vinyl_album' %}
+        <div class="form-group">
+            <label>Record Label</label>
+            <input type="text" name="label" value="{{ item.properties.label if item.properties and item.properties.label else '' }}" class="form-input">
+        </div>
+        <div class="form-group">
+            <label>Year</label>
+            <input type="text" name="year" value="{{ item.properties.year if item.properties and item.properties.year else '' }}" class="form-input">
+        </div>
+        <div class="form-group">
+            <label>Genre</label>
+            <select name="genre" class="form-select">
+                <option value="">--</option>
+                {% for g in ['rock','pop','jazz','blues','classical','country','soul','funk','folk','electronic','other'] %}
+                <option value="{{ g }}" {% if item.properties and item.properties.genre == g %}selected{% endif %}>{{ g|title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Condition</label>
+            <select name="condition" class="form-select">
+                <option value="">--</option>
+                {% for c in ['mint','near_mint','very_good_plus','very_good','good','fair','poor'] %}
+                <option value="{{ c }}" {% if item.properties and item.properties.condition == c %}selected{% endif %}>{{ c|replace('_', ' ')|title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Pressing</label>
+            <select name="pressing" class="form-select">
+                <option value="">--</option>
+                {% for p in ['original','reissue','repress','unknown'] %}
+                <option value="{{ p }}" {% if item.properties and item.properties.pressing == p %}selected{% endif %}>{{ p|title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Color Variant</label>
+            <select name="color_variant" class="form-select">
+                <option value="">--</option>
+                {% for v in ['black','colored','picture_disc'] %}
+                <option value="{{ v }}" {% if item.properties and item.properties.color_variant == v %}selected{% endif %}>{{ v|replace('_', ' ')|title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Est. Collector Value (USD)</label>
+            <input type="number" name="estimated_value" value="{{ item.properties.estimated_value if item.properties and item.properties.estimated_value else '' }}" placeholder="e.g. 45" class="form-input">
+            <span class="form-hint">AI estimate — check Discogs to verify</span>
+        </div>
         {% elif item.category.slug == 'spice' %}
         <div class="form-group">
             <label>Heat Level</label>
@@ -101,6 +151,34 @@
                 <span class="color-swatch-lg" style="background:{{ item.properties.color_hex }}"></span>
                 <span>{{ item.properties.color_hex }}</span>
             </div>
+            {% endif %}
+        </div>
+        {% elif item.category.slug == 'vinyl_album' and item.properties %}
+        {% if item.properties.get('estimated_value') %}
+        <div class="detail-value-row">
+            <span class="detail-label">Est. Collector Value</span>
+            <span class="detail-value-amount">${{ item.properties.estimated_value|int }}</span>
+            <span class="detail-value-disclaimer">AI estimate — verify on Discogs</span>
+        </div>
+        {% endif %}
+        <div class="detail-props">
+            {% if item.properties.label %}
+            <div class="prop-row"><span class="prop-label">Label</span><span>{{ item.properties.label }}</span></div>
+            {% endif %}
+            {% if item.properties.year %}
+            <div class="prop-row"><span class="prop-label">Year</span><span>{{ item.properties.year }}</span></div>
+            {% endif %}
+            {% if item.properties.genre %}
+            <div class="prop-row"><span class="prop-label">Genre</span><span>{{ item.properties.genre|title }}</span></div>
+            {% endif %}
+            {% if item.properties.condition %}
+            <div class="prop-row"><span class="prop-label">Condition</span><span>{{ item.properties.condition|replace('_', ' ')|title }}</span></div>
+            {% endif %}
+            {% if item.properties.pressing %}
+            <div class="prop-row"><span class="prop-label">Pressing</span><span>{{ item.properties.pressing|title }}</span></div>
+            {% endif %}
+            {% if item.properties.color_variant %}
+            <div class="prop-row"><span class="prop-label">Variant</span><span>{{ item.properties.color_variant|replace('_', ' ')|title }}</span></div>
             {% endif %}
         </div>
         {% elif item.category.slug == 'spice' and item.properties %}

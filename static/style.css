@@ -228,6 +228,19 @@ img { max-width: 100%; height: auto; display: block; }
     margin-top: 4px;
 }
 
+/* Value Badge */
+.value-badge {
+    display: inline-block;
+    background: var(--success);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 50px;
+    letter-spacing: 0.3px;
+    margin-top: 4px;
+}
+
 /* Empty State */
 .empty-state {
     text-align: center;
@@ -350,6 +363,17 @@ img { max-width: 100%; height: auto; display: block; }
     color: var(--text-secondary);
     margin-bottom: 20px;
 }
+.detail-value-row {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    border-radius: var(--radius-input);
+    padding: 14px 16px;
+    margin: 12px 0;
+}
+.detail-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px; }
+.detail-value-amount { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+.detail-value-disclaimer { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 .detail-props { margin-bottom: 20px; }
 .prop-row {
     display: flex;

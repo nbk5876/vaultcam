@@ -15,6 +15,8 @@ from email_validator import validate_email, EmailNotValidError
 import bleach
 from openai import OpenAI
 from dotenv import load_dotenv
+from PIL import Image
+import io
 
 # Load environment variables
 load_dotenv()
@@ -73,6 +75,18 @@ class Item(db.Model):
 
 
 # --------------------------------------------------
+# Image Compression
+# --------------------------------------------------
+def compress_image(image_file, max_size=800, quality=75):
+    """Resize and compress image to JPEG. Returns bytes."""
+    img = Image.open(image_file).convert('RGB')
+    img.thumbnail((max_size, max_size))
+    buffer = io.BytesIO()
+    img.save(buffer, format='JPEG', quality=quality, optimize=True)
+    return buffer.getvalue()
+
+
+# --------------------------------------------------
 # Seed Data
 # --------------------------------------------------
 def seed_categories():
@@ -93,6 +107,24 @@ Return ONLY a JSON object, no other text:
  "format": "one of: whole/ground/flake/blend or null",
  "expiry_date": "MM/YYYY format or null",
  "confidence": "high/medium/low"}'''
+
+    album_prompt = '''Analyze this vinyl record album cover or label.
+Return ONLY a JSON object, no other text:
+{"artist": "artist or band name or null",
+ "title": "album title or null",
+ "label": "record label name or null",
+ "year": "release year as 4-digit string or null",
+ "genre": "one of: rock/pop/jazz/blues/classical/country/soul/funk/folk/electronic/other or null",
+ "condition": "one of: mint/near_mint/very_good_plus/very_good/good/fair/poor or null",
+ "pressing": "one of: original/reissue/repress/unknown or null",
+ "color_variant": "black/colored/picture_disc or null",
+ "estimated_value": estimated collector market value in USD as a number or null,
+ "confidence": "high/medium/low"}'''
+
+    if not Category.query.filter_by(slug='vinyl_album').first():
+        db.session.add(Category(
+            slug='vinyl_album', display_name='Vinyl Albums',
+            icon='\U0001f3b5', ai_prompt=album_prompt))
 
     if not Category.query.filter_by(slug='nail_polish').first():
         db.session.add(Category(
@@ -259,8 +291,9 @@ def analyze():
 
     category = Category.query.filter_by(slug=category_slug).first_or_404()
 
-    image_data = base64.b64encode(image_file.read()).decode('utf-8')
-    mime_type = image_file.content_type or 'image/jpeg'
+    compressed_bytes = compress_image(image_file)
+    image_data = base64.b64encode(compressed_bytes).decode('utf-8')
+    mime_type = 'image/jpeg'  # always JPEG after compression
 
     client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
     response = client.chat.completions.create(
@@ -311,6 +344,15 @@ def save_item():
         properties['origin'] = request.form.get('origin', '')
         properties['format'] = request.form.get('format', '')
         properties['expiry_date'] = request.form.get('expiry_date', '')
+    elif category.slug == 'vinyl_album':
+        properties['label'] = request.form.get('label', '')
+        properties['year'] = request.form.get('year', '')
+        properties['genre'] = request.form.get('genre', '')
+        properties['condition'] = request.form.get('condition', '')
+        properties['pressing'] = request.form.get('pressing', '')
+        properties['color_variant'] = request.form.get('color_variant', '')
+        ev = request.form.get('estimated_value', '')
+        properties['estimated_value'] = float(ev) if ev else None
 
     item = Item(
         user_id=session['user_id'],
@@ -360,6 +402,15 @@ def edit_item(item_id):
             properties['origin'] = request.form.get('origin', '')
             properties['format'] = request.form.get('format', '')
             properties['expiry_date'] = request.form.get('expiry_date', '')
+        elif item.category.slug == 'vinyl_album':
+            properties['label'] = request.form.get('label', '')
+            properties['year'] = request.form.get('year', '')
+            properties['genre'] = request.form.get('genre', '')
+            properties['condition'] = request.form.get('condition', '')
+            properties['pressing'] = request.form.get('pressing', '')
+            properties['color_variant'] = request.form.get('color_variant', '')
+            ev = request.form.get('estimated_value', '')
+            properties['estimated_value'] = float(ev) if ev else None
         item.properties = properties
 
         db.session.commit()

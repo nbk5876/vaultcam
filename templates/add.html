@@ -181,6 +181,16 @@
                 buildSelect('heat_level', 'Heat Level', ['none','mild','medium','hot','extra_hot'], ext.heat_level) +
                 buildSelect('format', 'Format', ['whole','ground','flake','blend'], ext.format) +
                 buildField('expiry_date', 'Expiry Date', ext.expiry_date);
+        } else if (data.category_slug === 'vinyl_album') {
+            fields.innerHTML = buildField('name', 'Album Title', ext.title) +
+                buildField('brand', 'Artist', ext.artist) +
+                buildField('label', 'Record Label', ext.label) +
+                buildField('year', 'Year', ext.year) +
+                buildSelect('genre', 'Genre', ['rock','pop','jazz','blues','classical','country','soul','funk','folk','electronic','other'], ext.genre) +
+                buildSelect('condition', 'Condition', ['mint','near_mint','very_good_plus','very_good','good','fair','poor'], ext.condition) +
+                buildSelect('pressing', 'Pressing', ['original','reissue','repress','unknown'], ext.pressing) +
+                buildSelect('color_variant', 'Color Variant', ['black','colored','picture_disc'], ext.color_variant) +
+                buildField('estimated_value', 'Est. Collector Value (USD)', ext.estimated_value, 'number');
         }
     }
 
@@ -194,6 +204,11 @@
                 '<input type="text" value="' + val + '" class="form-input form-input-hex" ' +
                 'oninput="this.previousElementSibling.value=this.value" readonly>' +
                 '</div></div>';
+        }
+        if (type === 'number') {
+            return '<div class="form-group"><label>' + label + '</label>' +
+                '<input type="number" name="' + name + '" value="' + val + '" placeholder="e.g. 45" class="form-input">' +
+                '<span class="form-hint">AI estimate — check Discogs to verify</span></div>';
         }
         return '<div class="form-group"><label>' + label + '</label>' +
             '<input type="text" name="' + name + '" value="' + val + '" class="form-input"></div>';

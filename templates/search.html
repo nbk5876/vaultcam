@@ -31,6 +31,9 @@
             <div class="item-card-body">
                 <h3 class="item-card-name">{{ item.name or 'Unnamed' }}</h3>
                 <p class="item-card-brand">{{ item.brand or '' }}</p>
+                {% if item.category.slug == 'vinyl_album' and item.properties and item.properties.get('estimated_value') %}
+                <span class="value-badge">${{ item.properties.estimated_value|int }}</span>
+                {% endif %}
             </div>
         </a>
         {% endfor %}

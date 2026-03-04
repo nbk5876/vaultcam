@@ -38,6 +38,9 @@
                 {% if item.category.slug == 'nail_polish' and item.properties and item.properties.color_hex %}
                 <span class="color-swatch" style="background:{{ item.properties.color_hex }}"></span>
                 {% endif %}
+                {% if item.category.slug == 'vinyl_album' and item.properties and item.properties.get('estimated_value') %}
+                <span class="value-badge">${{ item.properties.estimated_value|int }}</span>
+                {% endif %}
             </div>
         </a>
         {% endfor %}
