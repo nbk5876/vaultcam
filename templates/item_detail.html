@@ -86,6 +86,34 @@
             <input type="number" name="estimated_value" value="{{ item.properties.estimated_value if item.properties and item.properties.estimated_value else '' }}" placeholder="e.g. 45" class="form-input">
             <span class="form-hint">AI estimate — check Discogs to verify</span>
         </div>
+        <div class="form-group">
+            <label>Pressing Plant</label>
+            <input type="text" name="pressing_plant" value="{{ item.properties.pressing_plant if item.properties and item.properties.pressing_plant else '' }}" class="form-input">
+        </div>
+        <div class="form-group">
+            <label>Matrix / Runout</label>
+            <input type="text" name="matrix_runout" value="{{ item.properties.matrix_runout if item.properties and item.properties.matrix_runout else '' }}" class="form-input">
+        </div>
+        <div class="form-group">
+            <label>Mastering Engineer</label>
+            <input type="text" name="mastering_engineer" value="{{ item.properties.mastering_engineer if item.properties and item.properties.mastering_engineer else '' }}" class="form-input">
+        </div>
+        <div class="form-group">
+            <label>Label Address</label>
+            <input type="text" name="label_address" value="{{ item.properties.label_address if item.properties and item.properties.label_address else '' }}" class="form-input">
+        </div>
+        <div class="form-group">
+            <label>Deadwax Notes</label>
+            <textarea name="deadwax_notes" rows="3" class="form-textarea">{{ item.properties.deadwax_notes if item.properties and item.properties.deadwax_notes else '' }}</textarea>
+        </div>
+        <div class="form-group">
+            <label>Verification Status</label>
+            <select name="verification_status" class="form-select">
+                {% for v in ['unconfirmed','partial','confirmed'] %}
+                <option value="{{ v }}" {% if item.properties and item.properties.get('verification_status') == v %}selected{% endif %}>{{ v|title }}</option>
+                {% endfor %}
+            </select>
+        </div>
         {% elif item.category.slug == 'spice' %}
         <div class="form-group">
             <label>Heat Level</label>
@@ -181,6 +209,33 @@
             <div class="prop-row"><span class="prop-label">Variant</span><span>{{ item.properties.color_variant|replace('_', ' ')|title }}</span></div>
             {% endif %}
         </div>
+        {% set has_deadwax = item.properties.get('pressing_plant') or item.properties.get('matrix_runout') or item.properties.get('mastering_engineer') or item.properties.get('label_address') or item.properties.get('deadwax_notes') or item.properties.get('verification_status') %}
+        {% if has_deadwax %}
+        <div class="detail-section-label">Pressing Details</div>
+        <div class="detail-props">
+            {% if item.properties.get('pressing_plant') %}
+            <div class="prop-row"><span class="prop-label">Pressing Plant</span><span>{{ item.properties.pressing_plant }}</span></div>
+            {% endif %}
+            {% if item.properties.get('matrix_runout') %}
+            <div class="prop-row"><span class="prop-label">Matrix / Runout</span><span>{{ item.properties.matrix_runout }}</span></div>
+            {% endif %}
+            {% if item.properties.get('mastering_engineer') %}
+            <div class="prop-row"><span class="prop-label">Mastering Engineer</span><span>{{ item.properties.mastering_engineer }}</span></div>
+            {% endif %}
+            {% if item.properties.get('label_address') %}
+            <div class="prop-row"><span class="prop-label">Label Address</span><span>{{ item.properties.label_address }}</span></div>
+            {% endif %}
+            {% if item.properties.get('verification_status') %}
+            {% set vs = item.properties.verification_status %}
+            <div class="prop-row"><span class="prop-label">Verification</span>
+                <span class="verification-badge verification-{{ vs }}">{{ vs|title }}</span>
+            </div>
+            {% endif %}
+            {% if item.properties.get('deadwax_notes') %}
+            <div class="prop-row prop-row-block"><span class="prop-label">Deadwax Notes</span><p>{{ item.properties.deadwax_notes }}</p></div>
+            {% endif %}
+        </div>
+        {% endif %}
         {% elif item.category.slug == 'spice' and item.properties %}
         <div class="detail-props">
             {% if item.properties.heat_level %}

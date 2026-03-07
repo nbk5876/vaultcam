@@ -108,23 +108,35 @@ Return ONLY a JSON object, no other text:
  "expiry_date": "MM/YYYY format or null",
  "confidence": "high/medium/low"}'''
 
-    album_prompt = '''Analyze this vinyl record album cover or label.
+    album_prompt = '''Analyze this vinyl record photo (cover or label).
 Return ONLY a JSON object, no other text:
-{"artist": "artist or band name or null",
- "title": "album title or null",
- "label": "record label name or null",
- "year": "release year as 4-digit string or null",
- "genre": "one of: rock/pop/jazz/blues/classical/country/soul/funk/folk/electronic/other or null",
- "condition": "one of: mint/near_mint/very_good_plus/very_good/good/fair/poor or null",
- "pressing": "one of: original/reissue/repress/unknown or null",
- "color_variant": "black/colored/picture_disc or null",
- "estimated_value": estimated collector market value in USD as a number or null,
- "confidence": "high/medium/low"}'''
+{
+  "artist": "artist name or null",
+  "title": "album title or null",
+  "year": "4-digit year or null",
+  "label": "record label name or null",
+  "genre": "one of: rock/pop/jazz/blues/classical/country/soul/funk/folk/electronic/other or null",
+  "condition": "one of: mint/near_mint/very_good_plus/very_good/good/fair/poor or null",
+  "pressing": "one of: original/reissue/repress/unknown or null",
+  "color_variant": "black/colored/picture_disc or null",
+  "estimated_value": estimated collector market value in USD as a number or null,
+  "pressing_plant": "plant name e.g. Presswell / Columbia / RCA / unknown",
+  "matrix_runout": "Side A matrix / Side B matrix or null",
+  "mastering_engineer": "RL / SS / DR / unconfirmed / null",
+  "label_address": "address variant visible on label or null",
+  "pressing_type": "stereo / mono / quadraphonic / other",
+  "deadwax_notes": "any additional deadwax observations or null",
+  "verification_status": "confirmed / partial / unconfirmed",
+  "confidence": "high / medium / low"
+}'''
 
-    if not Category.query.filter_by(slug='vinyl_album').first():
+    vinyl_cat = Category.query.filter_by(slug='vinyl_album').first()
+    if not vinyl_cat:
         db.session.add(Category(
             slug='vinyl_album', display_name='Vinyl Albums',
             icon='\U0001f3b5', ai_prompt=album_prompt))
+    else:
+        vinyl_cat.ai_prompt = album_prompt
 
     if not Category.query.filter_by(slug='nail_polish').first():
         db.session.add(Category(
@@ -326,7 +338,7 @@ def analyze():
              'image_url': {'url': f'data:{mime_type};base64,{image_data}'}},
             {'type': 'text', 'text': category.ai_prompt}
         ]}],
-        max_tokens=300
+        max_tokens=500
     )
 
     raw = response.choices[0].message.content.strip()
@@ -378,6 +390,12 @@ def save_item():
         properties['color_variant'] = request.form.get('color_variant', '')
         ev = request.form.get('estimated_value', '')
         properties['estimated_value'] = float(ev) if ev else None
+        properties['pressing_plant'] = request.form.get('pressing_plant', '')
+        properties['matrix_runout'] = request.form.get('matrix_runout', '')
+        properties['mastering_engineer'] = request.form.get('mastering_engineer', '')
+        properties['label_address'] = request.form.get('label_address', '')
+        properties['deadwax_notes'] = request.form.get('deadwax_notes', '')
+        properties['verification_status'] = request.form.get('verification_status', 'unconfirmed')
 
     item = Item(
         user_id=session['user_id'],
@@ -439,6 +457,12 @@ def edit_item(item_id):
             properties['color_variant'] = request.form.get('color_variant', '')
             ev = request.form.get('estimated_value', '')
             properties['estimated_value'] = float(ev) if ev else None
+            properties['pressing_plant'] = request.form.get('pressing_plant', '')
+            properties['matrix_runout'] = request.form.get('matrix_runout', '')
+            properties['mastering_engineer'] = request.form.get('mastering_engineer', '')
+            properties['label_address'] = request.form.get('label_address', '')
+            properties['deadwax_notes'] = request.form.get('deadwax_notes', '')
+            properties['verification_status'] = request.form.get('verification_status', 'unconfirmed')
         item.properties = properties
 
         db.session.commit()

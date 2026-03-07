@@ -190,7 +190,13 @@
                 buildSelect('condition', 'Condition', ['mint','near_mint','very_good_plus','very_good','good','fair','poor'], ext.condition) +
                 buildSelect('pressing', 'Pressing', ['original','reissue','repress','unknown'], ext.pressing) +
                 buildSelect('color_variant', 'Color Variant', ['black','colored','picture_disc'], ext.color_variant) +
-                buildField('estimated_value', 'Est. Collector Value (USD)', ext.estimated_value, 'number');
+                buildField('estimated_value', 'Est. Collector Value (USD)', ext.estimated_value, 'number') +
+                buildField('pressing_plant', 'Pressing Plant', ext.pressing_plant) +
+                buildField('matrix_runout', 'Matrix / Runout', ext.matrix_runout) +
+                buildField('mastering_engineer', 'Mastering Engineer', ext.mastering_engineer) +
+                buildField('label_address', 'Label Address', ext.label_address) +
+                buildTextarea('deadwax_notes', 'Deadwax Notes', ext.deadwax_notes) +
+                buildSelect('verification_status', 'Verification Status', ['unconfirmed','partial','confirmed'], ext.verification_status || 'unconfirmed');
         }
     }
 
@@ -212,6 +218,12 @@
         }
         return '<div class="form-group"><label>' + label + '</label>' +
             '<input type="text" name="' + name + '" value="' + val + '" class="form-input"></div>';
+    }
+
+    function buildTextarea(name, label, value) {
+        const val = value || '';
+        return '<div class="form-group"><label>' + label + '</label>' +
+            '<textarea name="' + name + '" rows="3" class="form-textarea">' + val + '</textarea></div>';
     }
 
     function buildSelect(name, label, options, selected) {
