@@ -56,11 +56,34 @@ class Category(db.Model):
     is_active = db.Column(db.Boolean, default=True)
 
 
+class Group(db.Model):
+    __tablename__ = 'groups'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    members = db.relationship('GroupMember', backref='group', lazy=True)
+    items = db.relationship('Item', backref='group', lazy=True)
+    creator = db.relationship('User', backref='created_groups', foreign_keys=[created_by])
+
+
+class GroupMember(db.Model):
+    __tablename__ = 'group_members'
+    id = db.Column(db.Integer, primary_key=True)
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    role = db.Column(db.String(20), default='editor')  # 'owner' or 'editor'
+    joined_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    user = db.relationship('User', backref='group_memberships')
+
+
 class Item(db.Model):
     __tablename__ = 'items'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'), nullable=True)
     name = db.Column(db.String(200))
     brand = db.Column(db.String(100))
     properties = db.Column(db.JSON)
@@ -184,6 +207,26 @@ def login_required(f):
 def is_guest():
     """Return True if the current session belongs to the guest account."""
     return session.get('is_guest', False)
+
+
+def can_write_item(item):
+    """Returns True if the current session user can edit this item."""
+    uid = session.get('user_id')
+    if not uid:
+        return False
+    if item.user_id == uid:
+        return True
+    if item.group_id:
+        membership = GroupMember.query.filter_by(
+            group_id=item.group_id, user_id=uid
+        ).first()
+        return membership is not None
+    return False
+
+
+def can_read_item(item):
+    """Currently all authenticated users can read all items."""
+    return session.get('user_id') is not None
 
 
 @app.context_processor
@@ -418,9 +461,16 @@ def save_item():
 @login_required
 def item_detail(item_id):
     item = Item.query.get_or_404(item_id)
-    if item.user_id != session['user_id']:
+    if not can_read_item(item):
         return redirect(url_for('dashboard'))
-    return render_template('item_detail.html', item=item)
+    uid = session['user_id']
+    is_owner = item.user_id == uid
+    user_groups = (Group.query.join(GroupMember)
+                   .filter(GroupMember.user_id == uid).all()) if is_owner else []
+    return render_template('item_detail.html', item=item,
+                           can_write=can_write_item(item),
+                           is_owner=is_owner,
+                           user_groups=user_groups)
 
 
 @app.route('/items/<int:item_id>/edit', methods=['GET', 'POST'])
@@ -430,7 +480,7 @@ def edit_item(item_id):
         flash('Guest accounts are read-only. Sign up to edit items!', 'error')
         return redirect(url_for('item_detail', item_id=item_id))
     item = Item.query.get_or_404(item_id)
-    if item.user_id != session['user_id']:
+    if not can_write_item(item):
         return redirect(url_for('dashboard'))
 
     if request.method == 'POST':
@@ -469,8 +519,16 @@ def edit_item(item_id):
         flash('Item updated!', 'success')
         return redirect(url_for('item_detail', item_id=item.id))
 
+    uid = session['user_id']
+    is_owner = item.user_id == uid
+    user_groups = (Group.query.join(GroupMember)
+                   .filter(GroupMember.user_id == uid).all()) if is_owner else []
     categories = Category.query.filter_by(is_active=True).all()
-    return render_template('item_detail.html', item=item, editing=True, categories=categories)
+    return render_template('item_detail.html', item=item, editing=True,
+                           categories=categories,
+                           can_write=True,
+                           is_owner=is_owner,
+                           user_groups=user_groups)
 
 
 @app.route('/items/<int:item_id>/delete', methods=['POST'])
@@ -479,12 +537,167 @@ def delete_item(item_id):
     if is_guest():
         return jsonify({'error': 'Guest accounts are read-only'}), 403
     item = Item.query.get_or_404(item_id)
+    # Delete is owner-only — group membership alone is not sufficient
     if item.user_id != session['user_id']:
-        return redirect(url_for('dashboard'))
+        flash('Only the item owner can delete this item.', 'error')
+        return redirect(url_for('item_detail', item_id=item_id))
     db.session.delete(item)
     db.session.commit()
     flash('Item deleted.', 'success')
     return redirect(url_for('dashboard'))
+
+
+@app.route('/items/<int:item_id>/assign-group', methods=['POST'])
+@login_required
+def assign_group(item_id):
+    item = Item.query.get_or_404(item_id)
+    if item.user_id != session['user_id']:
+        flash('Only the item owner can assign groups.', 'error')
+        return redirect(url_for('item_detail', item_id=item_id))
+    group_id = request.form.get('group_id', type=int)
+    if group_id:
+        group = Group.query.get_or_404(group_id)
+        membership = GroupMember.query.filter_by(
+            group_id=group_id, user_id=session['user_id']).first()
+        if not membership:
+            flash('You are not a member of that group.', 'error')
+            return redirect(url_for('item_detail', item_id=item_id))
+        item.group_id = group.id
+        db.session.commit()
+        flash(f'Item assigned to group "{group.name}".', 'success')
+    return redirect(url_for('item_detail', item_id=item_id))
+
+
+@app.route('/items/<int:item_id>/unassign-group', methods=['POST'])
+@login_required
+def unassign_group(item_id):
+    item = Item.query.get_or_404(item_id)
+    if item.user_id != session['user_id']:
+        flash('Only the item owner can unassign groups.', 'error')
+        return redirect(url_for('item_detail', item_id=item_id))
+    item.group_id = None
+    db.session.commit()
+    flash('Item removed from group.', 'success')
+    return redirect(url_for('item_detail', item_id=item_id))
+
+
+@app.route('/groups')
+@login_required
+def groups():
+    if is_guest():
+        return redirect(url_for('dashboard'))
+    uid = session['user_id']
+    user_groups = (Group.query.join(GroupMember)
+                   .filter(GroupMember.user_id == uid).all())
+    return render_template('groups.html', groups=user_groups)
+
+
+@app.route('/groups/new', methods=['GET', 'POST'])
+@login_required
+def new_group():
+    if is_guest():
+        return redirect(url_for('dashboard'))
+    if request.method == 'POST':
+        name = bleach.clean(request.form.get('name', '').strip())
+        description = bleach.clean(request.form.get('description', '').strip())
+        if not name:
+            flash('Group name is required.', 'error')
+            return render_template('groups.html', show_new_form=True, groups=[])
+        group = Group(name=name, description=description, created_by=session['user_id'])
+        db.session.add(group)
+        db.session.flush()  # get group.id before commit
+        member = GroupMember(group_id=group.id, user_id=session['user_id'], role='owner')
+        db.session.add(member)
+        db.session.commit()
+        flash(f'Group "{name}" created.', 'success')
+        return redirect(url_for('group_detail', group_id=group.id))
+    return render_template('groups.html', show_new_form=True,
+                           groups=Group.query.join(GroupMember)
+                           .filter(GroupMember.user_id == session['user_id']).all())
+
+
+@app.route('/groups/<int:group_id>')
+@login_required
+def group_detail(group_id):
+    if is_guest():
+        return redirect(url_for('dashboard'))
+    group = Group.query.get_or_404(group_id)
+    membership = GroupMember.query.filter_by(
+        group_id=group_id, user_id=session['user_id']).first()
+    if not membership:
+        flash('You are not a member of this group.', 'error')
+        return redirect(url_for('groups'))
+    is_group_owner = membership.role == 'owner'
+    items = Item.query.filter_by(group_id=group_id).all()
+    return render_template('group_detail.html', group=group,
+                           membership=membership,
+                           is_group_owner=is_group_owner,
+                           items=items)
+
+
+@app.route('/groups/<int:group_id>/invite', methods=['POST'])
+@login_required
+def invite_member(group_id):
+    if is_guest():
+        return redirect(url_for('dashboard'))
+    group = Group.query.get_or_404(group_id)
+    membership = GroupMember.query.filter_by(
+        group_id=group_id, user_id=session['user_id']).first()
+    if not membership or membership.role != 'owner':
+        flash('Only the group owner can invite members.', 'error')
+        return redirect(url_for('group_detail', group_id=group_id))
+    email = request.form.get('email', '').strip().lower()
+    invitee = User.query.filter_by(email=email).first()
+    if not invitee:
+        flash(f'No account found for {email}. They must sign up first.', 'error')
+        return redirect(url_for('group_detail', group_id=group_id))
+    existing = GroupMember.query.filter_by(
+        group_id=group_id, user_id=invitee.id).first()
+    if existing:
+        flash(f'{invitee.name} is already a member.', 'error')
+        return redirect(url_for('group_detail', group_id=group_id))
+    db.session.add(GroupMember(group_id=group_id, user_id=invitee.id, role='editor'))
+    db.session.commit()
+    flash(f'{invitee.name} added to the group.', 'success')
+    return redirect(url_for('group_detail', group_id=group_id))
+
+
+@app.route('/groups/<int:group_id>/remove-member/<int:user_id>', methods=['POST'])
+@login_required
+def remove_member(group_id, user_id):
+    if is_guest():
+        return redirect(url_for('dashboard'))
+    group = Group.query.get_or_404(group_id)
+    membership = GroupMember.query.filter_by(
+        group_id=group_id, user_id=session['user_id']).first()
+    if not membership or membership.role != 'owner':
+        flash('Only the group owner can remove members.', 'error')
+        return redirect(url_for('group_detail', group_id=group_id))
+    target = GroupMember.query.filter_by(group_id=group_id, user_id=user_id).first()
+    if target and target.role != 'owner':
+        db.session.delete(target)
+        db.session.commit()
+        flash('Member removed.', 'success')
+    return redirect(url_for('group_detail', group_id=group_id))
+
+
+@app.route('/groups/<int:group_id>/bulk-assign', methods=['POST'])
+@login_required
+def bulk_assign(group_id):
+    if is_guest():
+        return jsonify({'error': 'Guest accounts are read-only'}), 403
+    group = Group.query.get_or_404(group_id)
+    membership = GroupMember.query.filter_by(
+        group_id=group_id, user_id=session['user_id']).first()
+    if not membership or membership.role != 'owner':
+        return jsonify({'error': 'Only the group owner can bulk assign items.'}), 403
+    category_slug = request.json.get('category_slug') if request.is_json else request.form.get('category_slug')
+    category = Category.query.filter_by(slug=category_slug).first_or_404()
+    items = Item.query.filter_by(user_id=session['user_id'], category_id=category.id).all()
+    for item in items:
+        item.group_id = group_id
+    db.session.commit()
+    return jsonify({'assigned': len(items)})
 
 
 @app.route('/categories/<slug>')

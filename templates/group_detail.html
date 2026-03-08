@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{{ group.name }} — VaultCam{% endblock %}
+
+{% block content %}
+<div class="group-detail-page">
+    <a href="{{ url_for('groups') }}" class="back-link">&larr; Groups</a>
+
+    <div class="dashboard-header">
+        <h1>{{ group.name }}</h1>
+    </div>
+    {% if group.description %}
+    <p class="group-description">{{ group.description }}</p>
+    {% endif %}
+
+    <!-- Members -->
+    <div class="detail-section-label">Members</div>
+    <div class="group-member-list">
+        {% for m in group.members %}
+        <div class="group-member-row">
+            <div>
+                <span class="group-member-name">{{ m.user.name }}</span>
+                <span class="group-member-role group-role-{{ m.role }}">{{ m.role|title }}</span>
+            </div>
+            {% if is_group_owner and m.role != 'owner' %}
+            <form method="POST" action="{{ url_for('remove_member', group_id=group.id, user_id=m.user_id) }}">
+                <button type="submit" class="btn-remove-member" onclick="return confirm('Remove {{ m.user.name }} from this group?')">Remove</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if is_group_owner %}
+    <div class="invite-form" style="margin-top:16px;">
+        <div class="detail-section-label">Invite Member</div>
+        <form method="POST" action="{{ url_for('invite_member', group_id=group.id) }}" class="invite-form-inner">
+            <input type="email" name="email" class="form-input" placeholder="member@email.com" required style="margin-bottom:8px;">
+            <button type="submit" class="btn btn-secondary">Invite</button>
+        </form>
+        <p class="form-hint">They must already have a VaultCam account.</p>
+    </div>
+    {% endif %}
+
+    <!-- Items -->
+    <div class="detail-section-label" style="margin-top:28px;">Items in this Group</div>
+    {% if items %}
+    <div class="item-grid" style="margin-top:12px;">
+        {% for item in items %}
+        <a href="{{ url_for('item_detail', item_id=item.id) }}" class="item-card">
+            {% if item.image_data %}
+            <div class="item-card-image">
+                <img src="{{ item.image_data }}" alt="{{ item.name }}">
+            </div>
+            {% else %}
+            <div class="item-card-image item-card-placeholder">
+                <span>{{ item.category.icon }}</span>
+            </div>
+            {% endif %}
+            <div class="item-card-body">
+                <h3 class="item-card-name">{{ item.name or 'Unnamed' }}</h3>
+                <p class="item-card-brand">{{ item.brand or '' }}</p>
+                {% if item.category.slug == 'vinyl_album' and item.properties and item.properties.get('estimated_value') %}
+                <span class="value-badge">${{ item.properties.estimated_value|int }}</span>
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="form-hint" style="margin-top:12px;">No items assigned to this group yet. Open an item and use the Group section to assign it.</p>
+    {% endif %}
+
+    {% if is_group_owner %}
+    <div class="bulk-assign-section">
+        <div class="detail-section-label" style="margin-top:28px;">Bulk Assign</div>
+        <p class="form-hint">Assign all your Vinyl Albums to this group at once.</p>
+        <button id="bulk-assign-btn" class="btn btn-secondary" style="margin-top:8px;">
+            Assign All My Vinyl Albums
+        </button>
+        <p id="bulk-assign-result" class="form-hint" style="margin-top:8px; display:none;"></p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if is_group_owner %}
+<script>
+document.getElementById('bulk-assign-btn').addEventListener('click', function() {
+    if (!confirm('Assign all your Vinyl Albums to "{{ group.name }}"? This will overwrite any existing group assignment on those items.')) return;
+    const btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Assigning...';
+    fetch('{{ url_for("bulk_assign", group_id=group.id) }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({category_slug: 'vinyl_album'})
+    })
+    .then(r => r.json())
+    .then(data => {
+        const result = document.getElementById('bulk-assign-result');
+        result.style.display = '';
+        if (data.assigned !== undefined) {
+            result.textContent = data.assigned + ' albums assigned. Reload to see updated item list.';
+            btn.textContent = 'Done';
+        } else {
+            result.textContent = 'Error: ' + (data.error || 'Unknown error');
+            btn.disabled = false;
+            btn.textContent = 'Assign All My Vinyl Albums';
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.textContent = 'Assign All My Vinyl Albums';
+        alert('Request failed: ' + err.message);
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

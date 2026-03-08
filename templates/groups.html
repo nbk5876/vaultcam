@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Groups — VaultCam{% endblock %}
+
+{% block content %}
+<div class="groups-page">
+    <div class="dashboard-header">
+        <h1>Groups</h1>
+        <a href="{{ url_for('new_group') }}" class="btn btn-primary">New Group</a>
+    </div>
+
+    {% if show_new_form %}
+    <div class="auth-card" style="margin-bottom:24px;">
+        <h2>Create Group</h2>
+        <form method="POST" action="{{ url_for('new_group') }}">
+            <div class="form-group">
+                <label>Group Name</label>
+                <input type="text" name="name" class="form-input" placeholder="e.g. Deadwax" required>
+            </div>
+            <div class="form-group">
+                <label>Description (optional)</label>
+                <textarea name="description" rows="2" class="form-textarea" placeholder="What is this group for?"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Create Group</button>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if groups %}
+    <div class="group-list">
+        {% for g in groups %}
+        <a href="{{ url_for('group_detail', group_id=g.id) }}" class="group-card">
+            <div class="group-card-name">{{ g.name }}</div>
+            {% if g.description %}
+            <div class="group-card-desc">{{ g.description }}</div>
+            {% endif %}
+            <div class="group-card-meta">
+                {{ g.members|length }} member{{ 's' if g.members|length != 1 else '' }}
+                &middot;
+                {{ g.items|length }} item{{ 's' if g.items|length != 1 else '' }}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>You are not in any groups yet.</p>
+        <a href="{{ url_for('new_group') }}" class="btn btn-primary">Create Your First Group</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

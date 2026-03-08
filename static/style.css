@@ -406,6 +406,58 @@ img { max-width: 100%; height: auto; display: block; }
 .detail-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 28px; }
 .delete-form { width: 100%; }
 
+/* ── Groups ── */
+.group-badge {
+    display: inline-block;
+    background: rgba(0,122,255,0.12);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 50px;
+    margin-top: 4px;
+    letter-spacing: 0.2px;
+}
+.group-list { display: flex; flex-direction: column; gap: 12px; }
+.group-card {
+    display: block;
+    background: var(--card);
+    border-radius: var(--radius-card);
+    padding: 16px 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    color: var(--text-primary);
+}
+.group-card-name { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+.group-card-desc { font-size: 14px; color: var(--text-secondary); margin-bottom: 6px; }
+.group-card-meta { font-size: 13px; color: var(--text-secondary); }
+.group-description { font-size: 15px; color: var(--text-secondary); margin-bottom: 20px; }
+.group-member-list { display: flex; flex-direction: column; gap: 0; margin-top: 8px; }
+.group-member-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 15px;
+}
+.group-member-name { font-weight: 600; margin-right: 8px; }
+.group-member-role { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 50px; }
+.group-role-owner { background: var(--primary); color: #fff; }
+.group-role-editor { background: var(--bg); color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-remove-member {
+    font-size: 13px;
+    color: var(--danger);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-family: inherit;
+}
+.invite-form-inner { display: flex; flex-direction: column; gap: 0; }
+.group-assignment { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
+.group-assign-form { display: flex; flex-direction: column; }
+.bulk-assign-section { margin-top: 8px; }
+
 /* ── Search ── */
 .search-page h1 { font-size: 28px; font-weight: 700; margin-bottom: 16px; }
 .search-form { margin-bottom: 20px; }
