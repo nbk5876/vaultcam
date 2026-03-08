@@ -439,7 +439,7 @@ def edit_item(item_id):
         item.status = request.form.get('status', item.status)
         item.notes = bleach.clean(request.form.get('notes', '').strip())
 
-        properties = item.properties or {}
+        properties = dict(item.properties or {})
         if item.category.slug == 'nail_polish':
             properties['finish'] = request.form.get('finish', '')
             properties['color_hex'] = request.form.get('color_hex', '')
