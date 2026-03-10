@@ -322,10 +322,14 @@ def logout():
     return redirect(url_for('landing'))
 
 
+PER_PAGE = 10
+
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
     category_slug = request.args.get('category')
+    page = request.args.get('page', 1, type=int)
     categories = Category.query.filter_by(is_active=True).all()
 
     query = Item.query.filter_by(user_id=session['user_id'])
@@ -334,16 +338,16 @@ def dashboard():
         if cat:
             query = query.filter_by(category_id=cat.id)
 
-    items = query.order_by(
+    pagination = query.order_by(
         db.cast(
             db.func.nullif(db.cast(Item.properties['estimated_value'], db.Text), 'null'),
             db.Numeric
         ).desc().nullslast(),
         Item.brand.asc(),
         Item.name.asc()
-    ).all()
-    return render_template('dashboard.html', items=items, categories=categories,
-                           active_category=category_slug)
+    ).paginate(page=page, per_page=PER_PAGE, error_out=False)
+    return render_template('dashboard.html', items=pagination.items, pagination=pagination,
+                           categories=categories, active_category=category_slug)
 
 
 @app.route('/add')
@@ -628,11 +632,15 @@ def group_detail(group_id):
         flash('You are not a member of this group.', 'error')
         return redirect(url_for('groups'))
     is_group_owner = membership.role == 'owner'
-    items = Item.query.filter_by(group_id=group_id).all()
+    page = request.args.get('page', 1, type=int)
+    pagination = Item.query.filter_by(group_id=group_id).order_by(
+        Item.brand.asc(), Item.name.asc()
+    ).paginate(page=page, per_page=PER_PAGE, error_out=False)
     return render_template('group_detail.html', group=group,
                            membership=membership,
                            is_group_owner=is_group_owner,
-                           items=items)
+                           items=pagination.items,
+                           pagination=pagination)
 
 
 @app.route('/groups/<int:group_id>/invite', methods=['POST'])
@@ -717,17 +725,26 @@ def category_view(slug):
 def search():
     q = request.args.get('q', '').strip()
     items = []
+    pagination = None
     if q:
+        page = request.args.get('page', 1, type=int)
         search_term = f'%{q}%'
-        items = Item.query.filter(
-            Item.user_id == session['user_id'],
+        uid = session['user_id']
+        member_group_ids = [m.group_id for m in GroupMember.query.filter_by(user_id=uid).all()]
+        if member_group_ids:
+            access_filter = db.or_(Item.user_id == uid, Item.group_id.in_(member_group_ids))
+        else:
+            access_filter = Item.user_id == uid
+        pagination = Item.query.filter(
+            access_filter,
             db.or_(
                 Item.name.ilike(search_term),
                 Item.brand.ilike(search_term)
             )
-        ).order_by(Item.created_at.desc()).all()
+        ).order_by(Item.created_at.desc()).paginate(page=page, per_page=PER_PAGE, error_out=False)
+        items = pagination.items
     categories = Category.query.filter_by(is_active=True).all()
-    return render_template('search.html', items=items, query=q, categories=categories)
+    return render_template('search.html', items=items, pagination=pagination, query=q, categories=categories)
 
 
 # --------------------------------------------------

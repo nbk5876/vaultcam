@@ -458,6 +458,13 @@ img { max-width: 100%; height: auto; display: block; }
 .group-assign-form { display: flex; flex-direction: column; }
 .bulk-assign-section { margin-top: 8px; }
 
+/* ── Pagination ── */
+.pagination { display: flex; justify-content: center; align-items: center; gap: 8px; padding: 24px 0; flex-wrap: wrap; }
+.page-btn { padding: 8px 14px; border-radius: 8px; background: #fff; border: 1px solid var(--border); color: var(--primary); font-size: 15px; text-decoration: none; }
+.page-btn:hover { background: var(--bg); }
+.page-active { background: var(--primary) !important; color: #fff !important; border-color: var(--primary) !important; }
+.page-ellipsis { color: var(--text-secondary); padding: 0 4px; }
+
 /* ── Search ── */
 .search-page h1 { font-size: 28px; font-weight: 700; margin-bottom: 16px; }
 .search-form { margin-bottom: 20px; }
