@@ -457,6 +457,32 @@ img { max-width: 100%; height: auto; display: block; }
 .group-assignment { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
 .group-assign-form { display: flex; flex-direction: column; }
 .bulk-assign-section { margin-top: 8px; }
+.collection-value-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin: 16px 0 24px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.collection-value-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.collection-value-amount {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--success);
+    padding: 6px 18px;
+    border-radius: 50px;
+}
 
 /* ── Pagination ── */
 .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; padding: 24px 0; flex-wrap: wrap; }

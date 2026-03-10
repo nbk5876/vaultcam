@@ -41,6 +41,14 @@
     </div>
     {% endif %}
 
+    <!-- Collection Value -->
+    {% if collection_value > 0 %}
+    <div class="collection-value-card">
+        <span class="collection-value-label">Est. Collection Value</span>
+        <span class="collection-value-amount">${{ '{:,}'.format(collection_value) }}</span>
+    </div>
+    {% endif %}
+
     <!-- Items -->
     <div class="detail-section-label" style="margin-top:28px;">Items in this Group</div>
     {% if items %}

@@ -632,6 +632,15 @@ def group_detail(group_id):
         flash('You are not a member of this group.', 'error')
         return redirect(url_for('groups'))
     is_group_owner = membership.role == 'owner'
+    all_items = Item.query.filter_by(group_id=group_id).all()
+    collection_value = 0
+    for item in all_items:
+        try:
+            val = item.properties.get('estimated_value') if item.properties else None
+            if val is not None:
+                collection_value += int(float(str(val).replace('$', '').replace(',', '').strip()))
+        except (ValueError, TypeError, AttributeError):
+            pass
     page = request.args.get('page', 1, type=int)
     pagination = Item.query.filter_by(group_id=group_id).order_by(
         Item.brand.asc(), Item.name.asc()
@@ -640,7 +649,8 @@ def group_detail(group_id):
                            membership=membership,
                            is_group_owner=is_group_owner,
                            items=pagination.items,
-                           pagination=pagination)
+                           pagination=pagination,
+                           collection_value=collection_value)
 
 
 @app.route('/groups/<int:group_id>/invite', methods=['POST'])
