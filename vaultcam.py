@@ -551,6 +551,60 @@ def delete_item(item_id):
     return redirect(url_for('dashboard'))
 
 
+@app.route('/items/<int:item_id>/eval-pressing', methods=['POST'])
+@login_required
+def eval_pressing(item_id):
+    print(f'=== eval_pressing called item_id={item_id} ===', flush=True)
+    item = Item.query.get_or_404(item_id)
+    if not can_write_item(item):
+        return jsonify({'error': 'Access denied'}), 403
+    data = request.get_json()
+    artist           = data.get('artist', item.brand or '')
+    title            = data.get('name', item.name or '')
+    year             = data.get('year', (item.properties or {}).get('year', ''))
+    label            = data.get('label', (item.properties or {}).get('label', ''))
+    pressing_plant   = data.get('pressing_plant', '')
+    matrix_runout    = data.get('matrix_runout', '')
+    mastering_eng    = data.get('mastering_engineer', '')
+    label_address    = data.get('label_address', '')
+    deadwax_notes    = data.get('deadwax_notes', '')
+    prompt = f'''You are a vinyl record pressing expert.
+Analyze the following pressing details and identify the pressing,
+then estimate its current collector value.
+Album: {artist} - {title}
+Year: {year}
+Label: {label}
+Pressing Plant: {pressing_plant}
+Matrix / Runout: {matrix_runout}
+Mastering Engineer: {mastering_eng}
+Label Address: {label_address}
+Deadwax Notes: {deadwax_notes}
+Return ONLY a JSON object with these keys:
+{{
+  "pressing_id": "e.g. Original UK Parlophone, 1st US pressing, Reissue, etc.",
+  "value_low": <integer, USD>,
+  "value_mid": <integer, USD>,
+  "value_high": <integer, USD>,
+  "confidence": "high | medium | low",
+  "reasoning": "1-2 sentence explanation of key identifiers used"
+}}'''
+    print(f'=== AI Eval Request === item_id={item_id} user_id={session.get("user_id")}\n{prompt}', flush=True)
+    app.logger.info('=== AI Eval Request === item_id=%s user_id=%s\n%s',
+                    item_id, session.get('user_id'), prompt)
+    client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
+    response = client.chat.completions.create(
+        model='gpt-4o',
+        messages=[{'role': 'user', 'content': prompt}],
+        max_tokens=400
+    )
+    raw = response.choices[0].message.content.strip()
+    raw = raw.replace('```json', '').replace('```', '').strip()
+    print(f'=== AI Eval Response === item_id={item_id}\n{raw}', flush=True)
+    app.logger.info('=== AI Eval Response === item_id=%s\n%s', item_id, raw)
+    result = json.loads(raw)
+    return jsonify(result)
+
+
 @app.route('/items/<int:item_id>/assign-group', methods=['POST'])
 @login_required
 def assign_group(item_id):

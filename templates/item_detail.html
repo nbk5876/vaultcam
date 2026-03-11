@@ -15,11 +15,11 @@
     <form method="POST" action="{{ url_for('edit_item', item_id=item.id) }}">
         <div class="form-group">
             <label>Name</label>
-            <input type="text" name="name" value="{{ item.name or '' }}" class="form-input">
+            <input type="text" name="name" id="name" value="{{ item.name or '' }}" class="form-input">
         </div>
         <div class="form-group">
             <label>Brand</label>
-            <input type="text" name="brand" value="{{ item.brand or '' }}" class="form-input">
+            <input type="text" name="brand" id="brand" value="{{ item.brand or '' }}" class="form-input">
         </div>
 
         {% if item.category.slug == 'nail_polish' %}
@@ -39,11 +39,11 @@
         {% elif item.category.slug == 'vinyl_album' %}
         <div class="form-group">
             <label>Record Label</label>
-            <input type="text" name="label" value="{{ item.properties.label if item.properties and item.properties.label else '' }}" class="form-input">
+            <input type="text" name="label" id="label" value="{{ item.properties.label if item.properties and item.properties.label else '' }}" class="form-input">
         </div>
         <div class="form-group">
             <label>Year</label>
-            <input type="text" name="year" value="{{ item.properties.year if item.properties and item.properties.year else '' }}" class="form-input">
+            <input type="text" name="year" id="year" value="{{ item.properties.year if item.properties and item.properties.year else '' }}" class="form-input">
         </div>
         <div class="form-group">
             <label>Genre</label>
@@ -83,28 +83,28 @@
         </div>
         <div class="form-group">
             <label>Est. Collector Value (USD)</label>
-            <input type="number" name="estimated_value" value="{{ item.properties.estimated_value if item.properties and item.properties.estimated_value else '' }}" placeholder="e.g. 45" class="form-input">
+            <input type="number" name="estimated_value" id="estimated_value" value="{{ item.properties.estimated_value if item.properties and item.properties.estimated_value else '' }}" placeholder="e.g. 45" class="form-input">
             <span class="form-hint">AI estimate — check Discogs to verify</span>
         </div>
         <div class="form-group">
             <label>Pressing Plant</label>
-            <input type="text" name="pressing_plant" value="{{ item.properties.pressing_plant if item.properties and item.properties.pressing_plant else '' }}" class="form-input">
+            <input type="text" name="pressing_plant" id="pressing_plant" value="{{ item.properties.pressing_plant if item.properties and item.properties.pressing_plant else '' }}" class="form-input">
         </div>
         <div class="form-group">
             <label>Matrix / Runout</label>
-            <input type="text" name="matrix_runout" value="{{ item.properties.matrix_runout if item.properties and item.properties.matrix_runout else '' }}" class="form-input">
+            <input type="text" name="matrix_runout" id="matrix_runout" value="{{ item.properties.matrix_runout if item.properties and item.properties.matrix_runout else '' }}" class="form-input">
         </div>
         <div class="form-group">
             <label>Mastering Engineer</label>
-            <input type="text" name="mastering_engineer" value="{{ item.properties.mastering_engineer if item.properties and item.properties.mastering_engineer else '' }}" class="form-input">
+            <input type="text" name="mastering_engineer" id="mastering_engineer" value="{{ item.properties.mastering_engineer if item.properties and item.properties.mastering_engineer else '' }}" class="form-input">
         </div>
         <div class="form-group">
             <label>Label Address</label>
-            <input type="text" name="label_address" value="{{ item.properties.label_address if item.properties and item.properties.label_address else '' }}" class="form-input">
+            <input type="text" name="label_address" id="label_address" value="{{ item.properties.label_address if item.properties and item.properties.label_address else '' }}" class="form-input">
         </div>
         <div class="form-group">
             <label>Deadwax Notes</label>
-            <textarea name="deadwax_notes" rows="3" class="form-textarea">{{ item.properties.deadwax_notes if item.properties and item.properties.deadwax_notes else '' }}</textarea>
+            <textarea name="deadwax_notes" id="deadwax_notes" rows="3" class="form-textarea">{{ item.properties.deadwax_notes if item.properties and item.properties.deadwax_notes else '' }}</textarea>
         </div>
         <div class="form-group">
             <label>Verification Status</label>
@@ -113,6 +113,20 @@
                 <option value="{{ v }}" {% if item.properties and item.properties.get('verification_status') == v %}selected{% endif %}>{{ v|title }}</option>
                 {% endfor %}
             </select>
+        </div>
+        <button type="button" id="ai-eval-btn" class="btn-ai-eval">✨ AI Eval Pressing & Value</button>
+        <div id="ai-eval-result" class="ai-eval-card" style="display:none;">
+            <div id="ai-eval-loading" style="display:none;">
+                <span class="spinner"></span> Evaluating pressing...
+            </div>
+            <div id="ai-eval-error" style="display:none; color:#FF3B30; font-size:14px;">Eval failed. Check your deadwax fields and try again.</div>
+            <div id="ai-eval-content" style="display:none;">
+                <div class="eval-pressing-id" id="eval-pressing-id"></div>
+                <div class="eval-value-range" id="eval-value-range"></div>
+                <div class="eval-confidence" id="eval-confidence"></div>
+                <div class="eval-reasoning" id="eval-reasoning"></div>
+                <button type="button" id="accept-value-btn" class="btn-accept-value">Accept Value</button>
+            </div>
         </div>
         {% elif item.category.slug == 'spice' %}
         <div class="form-group">
@@ -310,4 +324,68 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+{% if editing and item.category.slug == 'vinyl_album' %}
+<script>
+let evalData = null;
+
+// Event delegation — handles clicks anywhere in document
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'accept-value-btn') {
+        if (!evalData) return;
+        const valInput = document.getElementById('estimated_value');
+        if (valInput) {
+            valInput.value = evalData.value_mid;
+            valInput.style.background = '#d4f5d4';
+        }
+    }
+});
+
+const evalBtn = document.getElementById('ai-eval-btn');
+if (evalBtn) {
+    evalBtn.addEventListener('click', async () => {
+        const card = document.getElementById('ai-eval-result');
+        const loading = document.getElementById('ai-eval-loading');
+        const content = document.getElementById('ai-eval-content');
+        const errorMsg = document.getElementById('ai-eval-error');
+        card.style.display = 'block';
+        loading.style.display = 'block';
+        content.style.display = 'none';
+        errorMsg.style.display = 'none';
+        const payload = {
+            artist:             document.getElementById('brand')?.value || '',
+            name:               document.getElementById('name')?.value || '',
+            year:               document.getElementById('year')?.value || '',
+            label:              document.getElementById('label')?.value || '',
+            pressing_plant:     document.getElementById('pressing_plant')?.value || '',
+            matrix_runout:      document.getElementById('matrix_runout')?.value || '',
+            mastering_engineer: document.getElementById('mastering_engineer')?.value || '',
+            label_address:      document.getElementById('label_address')?.value || '',
+            deadwax_notes:      document.getElementById('deadwax_notes')?.value || '',
+        };
+        try {
+            const res = await fetch('/items/{{ item.id }}/eval-pressing', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            evalData = await res.json();
+            document.getElementById('eval-pressing-id').textContent = evalData.pressing_id;
+            document.getElementById('eval-value-range').textContent =
+                '$' + evalData.value_low.toLocaleString() + ' \u2013 $' + evalData.value_high.toLocaleString() +
+                '  (mid: $' + evalData.value_mid.toLocaleString() + ')';
+            document.getElementById('eval-confidence').textContent = 'Confidence: ' + evalData.confidence;
+            document.getElementById('eval-reasoning').textContent = evalData.reasoning;
+            loading.style.display = 'none';
+            content.style.display = 'block';
+        } catch (err) {
+            loading.style.display = 'none';
+            errorMsg.style.display = 'block';
+        }
+    });
+}
+</script>
+{% endif %}
 {% endblock %}

@@ -1,5 +1,6 @@
 # Environment
 .env
+vc_db.py
 venv/
 env/
 .venv/
