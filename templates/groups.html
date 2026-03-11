@@ -5,7 +5,7 @@
 <div class="groups-page">
     <div class="dashboard-header">
         <h1>Groups</h1>
-        <a href="{{ url_for('new_group') }}" class="btn btn-primary">New Group</a>
+        {% if not guest_mode %}<a href="{{ url_for('new_group') }}" class="btn btn-primary">New Group</a>{% endif %}
     </div>
 
     {% if show_new_form %}
@@ -44,7 +44,7 @@
     {% else %}
     <div class="empty-state">
         <p>You are not in any groups yet.</p>
-        <a href="{{ url_for('new_group') }}" class="btn btn-primary">Create Your First Group</a>
+        {% if not guest_mode %}<a href="{{ url_for('new_group') }}" class="btn btn-primary">Create Your First Group</a>{% endif %}
     </div>
     {% endif %}
 </div>

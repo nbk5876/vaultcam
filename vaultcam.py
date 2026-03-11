@@ -642,8 +642,6 @@ def unassign_group(item_id):
 @app.route('/groups')
 @login_required
 def groups():
-    if is_guest():
-        return redirect(url_for('dashboard'))
     uid = session['user_id']
     user_groups = (Group.query.join(GroupMember)
                    .filter(GroupMember.user_id == uid).all())
@@ -654,7 +652,9 @@ def groups():
 @login_required
 def new_group():
     if is_guest():
-        return redirect(url_for('dashboard'))
+        if request.method == 'POST':
+            return ('Guests cannot create groups.', 403)
+        return redirect(url_for('groups'))
     if request.method == 'POST':
         name = bleach.clean(request.form.get('name', '').strip())
         description = bleach.clean(request.form.get('description', '').strip())
@@ -677,8 +677,6 @@ def new_group():
 @app.route('/groups/<int:group_id>')
 @login_required
 def group_detail(group_id):
-    if is_guest():
-        return redirect(url_for('dashboard'))
     group = Group.query.get_or_404(group_id)
     membership = GroupMember.query.filter_by(
         group_id=group_id, user_id=session['user_id']).first()
